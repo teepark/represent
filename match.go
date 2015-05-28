@@ -18,6 +18,14 @@ type acceptSpec struct {
 	types map[string]*acceptGroup
 }
 
+// Match parses the Accept header of a request and selects the most suitable
+// registered Protocol. It will return errors resulting from a malformed header
+// (400 would be an appropriate response), or a nil Protocol if nothing matches
+// ("406 Not Acceptable").
+func Match(r *http.Request) (Protocol, error) {
+	return globalReg.Match(r)
+}
+
 // TODO: cache acceptSpecs by precise fullHeader strings
 
 func buildSpec(fullHeader string) (*acceptSpec, error) {
@@ -82,17 +90,15 @@ func qval(params map[string]string) (float64, error) {
 	return q, nil
 }
 
-// Match parses the Accept header of a request and selects the most suitable
-// registered Protocol. It will return errors resulting from a malformed header
-// (400 would be an appropriate response), or a nil Protocol if nothing matches
-// ("406 Not Acceptable").
-func Match(r *http.Request) (Protocol, error) {
+// Match on a registry performs the same operation as the Match function, just
+// matches against the set of Protocols registered on the specific registry.
+func (reg *Registry) Match(r *http.Request) (Protocol, error) {
 	spec, err := buildSpec(r.Header.Get("Accept"))
 	if err != nil {
 		return nil, err
 	}
 
-	registered := registry.Load()
+	registered := reg.container.Load()
 	if registered == nil {
 		return nil, nil
 	}

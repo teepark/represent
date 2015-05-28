@@ -8,14 +8,17 @@ import (
 	"sync/atomic"
 )
 
-var (
-	writeMux sync.Mutex
-	registry atomic.Value
-)
+var globalReg Registry
 
 type currentRegistry struct {
 	protocols   []Protocol
 	defaultProt Protocol
+}
+
+// Registry is a container for Protocols
+type Registry struct {
+	lock      sync.RWMutex
+	container atomic.Value
 }
 
 // Protocol is the plug-in interface for a specific serialization format
@@ -32,15 +35,15 @@ type Protocol interface {
 	Encode(interface{}, io.Writer) error
 }
 
-// Register sets a Protocol implementation as the handler for its content type.
-func Register(p Protocol) {
+// Register stores a Protocol as a content-type handler on a registry instance
+func (reg *Registry) Register(p Protocol) {
 	if _, _, err := mime.ParseMediaType(p.ContentType()); err != nil {
 		panic(err)
 	}
 
-	writeMux.Lock()
+	reg.lock.Lock()
 
-	current := registry.Load()
+	current := reg.container.Load()
 	var next currentRegistry
 	if current == nil {
 		next = currentRegistry{[]Protocol{p}, p}
@@ -51,22 +54,21 @@ func Register(p Protocol) {
 		}
 	}
 
-	registry.Store(next)
+	reg.container.Store(next)
 
-	writeMux.Unlock()
+	reg.lock.Unlock()
 }
 
-// SetDefault sets the content type to prefer in the event of match ties
-// (especially because the Accept header contained */*).
-func SetDefault(contentType string) {
+// SetDefault sets the default content type for a specific registry.
+func (reg *Registry) SetDefault(contentType string) {
 	if _, _, err := mime.ParseMediaType(contentType); err != nil {
 		panic(err)
 	}
 
-	writeMux.Lock()
-	defer writeMux.Unlock()
+	reg.lock.Lock()
+	defer reg.lock.Unlock()
 
-	current := registry.Load()
+	current := reg.container.Load()
 	if current == nil {
 		panic(fmt.Sprintf("no protocol registered for '%s'", contentType))
 	}
@@ -82,5 +84,16 @@ func SetDefault(contentType string) {
 		panic(fmt.Sprintf("no protocol registered for '%s'", contentType))
 	}
 
-	registry.Store(currentRegistry{cur.protocols, d})
+	reg.container.Store(currentRegistry{cur.protocols, d})
+}
+
+// Register sets a Protocol implementation as the handler for its content type.
+func Register(p Protocol) {
+	globalReg.Register(p)
+}
+
+// SetDefault sets the content type to prefer in the event of match ties
+// (especially because the Accept header contained */*).
+func SetDefault(contentType string) {
+	globalReg.SetDefault(contentType)
 }
