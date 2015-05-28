@@ -6,9 +6,13 @@ import (
 	"mime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/golang/groupcache/lru"
 )
 
-var globalReg Registry
+const cacheSize = 256
+
+var globalReg *Registry = NewRegistry()
 
 type currentRegistry struct {
 	protocols   []Protocol
@@ -17,8 +21,17 @@ type currentRegistry struct {
 
 // Registry is a container for Protocols
 type Registry struct {
-	lock      sync.RWMutex
+	lock      sync.Mutex
 	container atomic.Value
+
+	cacheLock sync.Mutex
+	specCache *lru.Cache
+}
+
+func NewRegistry() *Registry {
+	return &Registry{
+		specCache: lru.New(cacheSize),
+	}
 }
 
 // Protocol is the plug-in interface for a specific serialization format
@@ -35,7 +48,7 @@ type Protocol interface {
 	Encode(interface{}, io.Writer) error
 }
 
-// Register stores a Protocol as a content-type handler on a registry instance
+// Register stores a Protocol as a content-type handler on a registry instance.
 func (reg *Registry) Register(p Protocol) {
 	if _, _, err := mime.ParseMediaType(p.ContentType()); err != nil {
 		panic(err)
@@ -96,4 +109,25 @@ func Register(p Protocol) {
 // (especially because the Accept header contained */*).
 func SetDefault(contentType string) {
 	globalReg.SetDefault(contentType)
+}
+
+func (reg *Registry) checkCache(header string) *acceptSpec {
+	reg.cacheLock.Lock()
+
+	item, ok := reg.specCache.Get(header)
+
+	reg.cacheLock.Unlock()
+
+	if ok {
+		return item.(*acceptSpec)
+	}
+	return nil
+}
+
+func (reg *Registry) storeCache(header string, spec *acceptSpec) {
+	reg.cacheLock.Lock()
+
+	reg.specCache.Add(header, spec)
+
+	reg.cacheLock.Unlock()
 }

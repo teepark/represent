@@ -2,7 +2,6 @@ package represent
 
 import (
 	"io"
-	"net/http"
 	"sync/atomic"
 	"testing"
 )
@@ -129,13 +128,7 @@ func TestMatching(t *testing.T) {
 			SetDefault(test.defaultCT)
 		}
 
-		r, err := http.NewRequest("GET", "", nil)
-		if err != nil {
-			t.Fatal("NewRequest failure:", err)
-		}
-		r.Header.Set("Accept", test.header)
-
-		prot, err := Match(r)
+		prot, err := Match(test.header)
 		if err != nil {
 			t.Fatal("Match failure:", err)
 		}
