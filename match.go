@@ -15,14 +15,14 @@ type acceptGroup struct {
 
 type acceptSpec struct {
 	starQ float64
-	types map[string]acceptGroup
+	types map[string]*acceptGroup
 }
 
 // TODO: cache acceptSpecs by precise fullHeader strings
 
 func buildSpec(fullHeader string) (*acceptSpec, error) {
 	spec := new(acceptSpec)
-	spec.types = make(map[string]acceptGroup, 0)
+	spec.types = make(map[string]*acceptGroup, 0)
 
 	if fullHeader == "" {
 		fullHeader = "*/*"
@@ -53,7 +53,7 @@ func buildSpec(fullHeader string) (*acceptSpec, error) {
 
 		group, ok := spec.types[major]
 		if !ok {
-			group = acceptGroup{0, make(map[string]float64)}
+			group = &acceptGroup{0, make(map[string]float64)}
 			spec.types[major] = group
 		}
 		if minor == "*" {

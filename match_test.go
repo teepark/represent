@@ -103,7 +103,7 @@ var testTable = []testSpec{
 			"bar/baz",
 		},
 		defaultCT: "bar/baz",
-		resultCT: "foo",
+		resultCT:  "foo",
 	},
 	{ // earliest match wins when default ruled out
 		header: "application/*,text/html;q=0.5",
@@ -129,7 +129,7 @@ func TestMatching(t *testing.T) {
 			SetDefault(test.defaultCT)
 		}
 
-		r, err := http.NewRequest("GET", "http://here/", nil)
+		r, err := http.NewRequest("GET", "", nil)
 		if err != nil {
 			t.Fatal("NewRequest failure:", err)
 		}
