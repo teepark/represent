@@ -3,13 +3,13 @@ package represent
 import (
 	"fmt"
 	"io"
-	"strings"
+	"mime"
 	"sync"
 	"sync/atomic"
 )
 
 var (
-	writeMux *sync.Mutex
+	writeMux sync.Mutex
 	registry atomic.Value
 )
 
@@ -34,9 +34,8 @@ type Protocol interface {
 
 // Set a Protocol implementation as the handler for its content type.
 func Register(p Protocol) {
-	split := strings.SplitN(p.ContentType(), "/", 2)
-	if len(split) != 2 {
-		panic(fmt.Sprintf("invalid content-type: '%s'", p.ContentType()))
+	if _, _, err := mime.ParseMediaType(p.ContentType()); err != nil {
+		panic(err)
 	}
 
 	writeMux.Lock()
@@ -59,9 +58,8 @@ func Register(p Protocol) {
 
 // TODO: document
 func SetDefault(contentType string) {
-	split := strings.SplitN(contentType, "/", 2)
-	if len(split) != 2 {
-		panic(fmt.Sprintf("invalid content-type: '%s'", contentType))
+	if _, _, err := mime.ParseMediaType(contentType); err != nil {
+		panic(err)
 	}
 
 	writeMux.Lock()

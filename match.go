@@ -46,7 +46,10 @@ func buildSpec(fullHeader string) (*acceptSpec, error) {
 		}
 
 		types := strings.SplitN(mt, "/", 2)
-		major, minor := types[0], types[1]
+		major, minor := types[0], ""
+		if len(types) == 2 {
+			minor = types[1]
+		}
 
 		group, ok := spec.types[major]
 		if !ok {
@@ -99,7 +102,10 @@ func Match(r *http.Request) (Protocol, error) {
 
 	for _, prot := range registered.(currentRegistry).protocols {
 		split := strings.SplitN(prot.ContentType(), "/", 2)
-		major, minor := split[0], split[1]
+		major, minor := split[0], ""
+		if len(split) > 1 {
+			minor = split[1]
+		}
 
 		group, ok := spec.types[major]
 		if !ok {
@@ -117,6 +123,10 @@ func Match(r *http.Request) (Protocol, error) {
 			if group.starQ > 0 {
 				// but I have a major/*
 				matches = append(matches, protMatch{prot, group.starQ})
+			} else if spec.starQ > 0 {
+				// there was a */* and something else for the same major type,
+				// but no precise major/minor match
+				matches = append(matches, protMatch{prot, spec.starQ})
 			}
 			continue
 		}
