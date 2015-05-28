@@ -13,7 +13,7 @@ func TestRegistryValue(t *testing.T) {
 	pi := &protImpl{}
 	Register(pi)
 
-	current := registry.Load()
+	current := globalReg.container.Load()
 	if current == nil {
 		t.Fatal("not registered")
 	}
@@ -38,7 +38,7 @@ func TestSetDefault(t *testing.T) {
 	Register(pi)
 	SetDefault(pi.ContentType())
 
-	current := registry.Load()
+	current := globalReg.container.Load()
 	if current == nil {
 		t.Fatal("not registered")
 	}

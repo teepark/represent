@@ -151,10 +151,10 @@ func TestMatching(t *testing.T) {
 }
 
 func clearRegistry() {
-	writeMux.Lock()
-	defer writeMux.Unlock()
+	globalReg.lock.Lock()
+	defer globalReg.lock.Unlock()
 
-	registry = atomic.Value{}
+	globalReg.container = atomic.Value{}
 }
 
 type ctProt string
