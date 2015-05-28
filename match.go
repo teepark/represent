@@ -82,7 +82,10 @@ func qval(params map[string]string) (float64, error) {
 	return q, nil
 }
 
-// TODO: document
+// Match parses the Accept header of a request and selects the most suitable
+// registered Protocol. It will return errors resulting from a malformed header
+// (400 would be an appropriate response), or a nil Protocol if nothing matches
+// ("406 Not Acceptable").
 func Match(r *http.Request) (Protocol, error) {
 	spec, err := buildSpec(r.Header.Get("Accept"))
 	if err != nil {

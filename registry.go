@@ -32,7 +32,7 @@ type Protocol interface {
 	Encode(interface{}, io.Writer) error
 }
 
-// Set a Protocol implementation as the handler for its content type.
+// Register sets a Protocol implementation as the handler for its content type.
 func Register(p Protocol) {
 	if _, _, err := mime.ParseMediaType(p.ContentType()); err != nil {
 		panic(err)
@@ -56,7 +56,8 @@ func Register(p Protocol) {
 	writeMux.Unlock()
 }
 
-// TODO: document
+// SetDefault sets the content type to prefer in the event of match ties
+// (especially because the Accept header contained */*).
 func SetDefault(contentType string) {
 	if _, _, err := mime.ParseMediaType(contentType); err != nil {
 		panic(err)
