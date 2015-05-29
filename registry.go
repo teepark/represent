@@ -12,7 +12,7 @@ import (
 
 const cacheSize = 256
 
-var globalReg *Registry = NewRegistry()
+var globalReg = NewRegistry()
 
 type currentRegistry struct {
 	protocols   []Protocol
@@ -28,6 +28,7 @@ type Registry struct {
 	specCache *lru.Cache
 }
 
+// NewRegistry creates a new, empty Registry
 func NewRegistry() *Registry {
 	return &Registry{
 		specCache: lru.New(cacheSize),

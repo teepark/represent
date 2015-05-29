@@ -19,8 +19,7 @@ type acceptSpec struct {
 
 // Match parses a mimetype header (like Accept) and selects the most suitable
 // registered Protocol. It will return errors resulting from a malformed header
-// (400 would be an appropriate response), or a nil Protocol if nothing matches
-// ("406 Not Acceptable").
+// or a nil Protocol if nothing matches.
 func Match(header string) (Protocol, error) {
 	return globalReg.Match(header)
 }
@@ -111,7 +110,7 @@ func (reg *Registry) Match(header string) (Protocol, error) {
 		prot Protocol
 		q    float64
 	}
-	matches := make([]protMatch, 0)
+	var matches []protMatch
 
 	for _, prot := range registered.(currentRegistry).protocols {
 		split := strings.SplitN(prot.ContentType(), "/", 2)
