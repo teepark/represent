@@ -25,53 +25,65 @@ func Match(header string) (Protocol, error) {
 }
 
 func (reg *Registry) buildSpec(fullHeader string) (*acceptSpec, error) {
+	// per the RFC, the lack of an accept header says they accept anything
+	if fullHeader == "" {
+		fullHeader = "*/*"
+	}
+
+	// check the cache by the header string
 	spec := reg.checkCache(fullHeader)
 	if spec != nil {
 		return spec, nil
 	}
 
+	// allocate a spec
 	spec = new(acceptSpec)
 	spec.types = make(map[string]*acceptGroup, 0)
 
-	if fullHeader == "" {
-		fullHeader = "*/*"
-	}
-	split := strings.Split(fullHeader, ",")
-
-	for _, header := range split {
+	// multiple mimetypes are comma-delimited
+	for _, header := range strings.Split(fullHeader, ",") {
+		// check validity and separate the options
 		mt, params, err := mime.ParseMediaType(header)
 		if err != nil {
 			return nil, err
 		}
 
+		// get the "q" float option
 		q, err := qval(params)
 		if err != nil {
 			return nil, err
 		}
 
+		// handle the catch-all
 		if mt == "*/*" {
 			spec.starQ = q
 			continue
 		}
 
+		// separate major/minor types (/minor optional)
 		types := strings.SplitN(mt, "/", 2)
 		major, minor := types[0], ""
 		if len(types) == 2 {
 			minor = types[1]
 		}
 
+		// traverse into the spec by major type,
+		// creating the sub-struct if needed
 		group, ok := spec.types[major]
 		if !ok {
 			group = &acceptGroup{0, make(map[string]float64)}
 			spec.types[major] = group
 		}
 		if minor == "*" {
+			// major-type-specific catchall (ie text/*)
 			group.starQ = q
 		} else {
+			// a specific major/minor mimetype
 			group.subTypes[minor] = q
 		}
 	}
 
+	// populate the cache with the result
 	reg.storeCache(fullHeader, spec)
 
 	return spec, nil
@@ -88,7 +100,7 @@ func qval(params map[string]string) (float64, error) {
 		return 0, err
 	}
 	if q > 1 {
-		return 0, errors.New("qval must not be >1")
+		return 0, errors.New("qval must be <=1")
 	}
 	return q, nil
 }
