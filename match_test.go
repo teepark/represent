@@ -1,7 +1,9 @@
 package represent
 
 import (
+	"fmt"
 	"io"
+	"io/ioutil"
 	"sync/atomic"
 	"testing"
 )
@@ -155,9 +157,27 @@ type ctProt string
 func (c ctProt) ContentType() string {
 	return string(c)
 }
-func (c ctProt) Decode(data interface{}, r io.Reader) error {
+func (c ctProt) Decode(container interface{}, r io.Reader) error {
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	if string(b) != fmt.Sprintf("(encoded %s)", string(c)) {
+		return fmt.Errorf(
+			"wrong content. expected '%s', got '%s'",
+			fmt.Sprintf("(encoded %s)", string(c)),
+			string(b),
+		)
+	}
+
+	landing := container.(*[]byte)
+
+	l := copy(*landing, b)
+	*landing = (*landing)[:l]
 	return nil
 }
 func (c ctProt) Encode(data interface{}, w io.Writer) error {
-	return nil
+	_, err := w.Write([]byte(fmt.Sprintf("(encoded %s)", string(c))))
+	return err
 }
