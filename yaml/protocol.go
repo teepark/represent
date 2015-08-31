@@ -6,8 +6,14 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/teepark/represent"
+
 	"gopkg.in/yaml.v2"
 )
+
+func init() {
+	represent.Register(&Protocol{})
+}
 
 // Protocol is the YAML implementation of the registry.Protocol interface
 type Protocol struct{}
