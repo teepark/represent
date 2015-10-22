@@ -113,18 +113,16 @@ func (reg *Registry) Match(header string) (Protocol, error) {
 		return nil, err
 	}
 
-	registered := reg.container.Load()
-	if registered == nil {
-		return nil, nil
-	}
-
 	type protMatch struct {
 		prot Protocol
 		q    float64
 	}
 	var matches []protMatch
 
-	for _, prot := range registered.(currentRegistry).protocols {
+	reg.mut.RLock()
+	defer reg.mut.RUnlock()
+
+	for _, prot := range reg.protocols {
 		split := strings.SplitN(prot.ContentType(), "/", 2)
 		major, minor := split[0], ""
 		if len(split) > 1 {
@@ -180,7 +178,7 @@ func (reg *Registry) Match(header string) (Protocol, error) {
 
 	// see if the default one is among the matches
 	for _, prot := range bestProts {
-		if prot == registered.(currentRegistry).defaultProt {
+		if prot == reg.defaultProtocol {
 			return prot, nil
 		}
 	}

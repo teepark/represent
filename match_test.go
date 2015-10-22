@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"sync/atomic"
 	"testing"
 )
 
@@ -146,10 +145,11 @@ func TestMatching(t *testing.T) {
 }
 
 func clearRegistry() {
-	globalReg.lock.Lock()
-	defer globalReg.lock.Unlock()
+	globalReg.mut.Lock()
+	defer globalReg.mut.Unlock()
 
-	globalReg.container = atomic.Value{}
+	globalReg.protocols = nil
+	globalReg.defaultProtocol = nil
 }
 
 type ctProt string

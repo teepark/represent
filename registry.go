@@ -1,11 +1,9 @@
 package represent
 
 import (
-	"fmt"
 	"io"
 	"mime"
 	"sync"
-	"sync/atomic"
 
 	"github.com/golang/groupcache/lru"
 )
@@ -14,15 +12,11 @@ const cacheSize = 256
 
 var globalReg = NewRegistry()
 
-type currentRegistry struct {
-	protocols   []Protocol
-	defaultProt Protocol
-}
-
 // Registry is a container for Protocols
 type Registry struct {
-	lock      sync.Mutex
-	container atomic.Value
+	mut             sync.RWMutex
+	protocols       []Protocol
+	defaultProtocol Protocol
 
 	cacheLock sync.Mutex
 	specCache *lru.Cache
@@ -55,22 +49,9 @@ func (reg *Registry) Register(p Protocol) {
 		panic(err)
 	}
 
-	reg.lock.Lock()
-
-	current := reg.container.Load()
-	var next currentRegistry
-	if current == nil {
-		next = currentRegistry{[]Protocol{p}, p}
-	} else {
-		next = currentRegistry{
-			append(current.(currentRegistry).protocols, p),
-			current.(currentRegistry).defaultProt,
-		}
-	}
-
-	reg.container.Store(next)
-
-	reg.lock.Unlock()
+	reg.mut.Lock()
+	reg.protocols = append(reg.protocols, p)
+	reg.mut.Unlock()
 }
 
 // SetDefault sets the default content type for a specific registry.
@@ -79,26 +60,14 @@ func (reg *Registry) SetDefault(contentType string) {
 		panic(err)
 	}
 
-	reg.lock.Lock()
-	defer reg.lock.Unlock()
-
-	current := reg.container.Load()
-	if current == nil {
-		panic(fmt.Sprintf("no protocol registered for '%s'", contentType))
-	}
-	cur := current.(currentRegistry)
-
-	var d Protocol
-	for _, prot := range cur.protocols {
-		if prot.ContentType() == contentType {
-			d = prot
+	reg.mut.Lock()
+	for _, p := range reg.protocols {
+		if p.ContentType() == contentType {
+			reg.defaultProtocol = p
+			break
 		}
 	}
-	if d == nil {
-		panic(fmt.Sprintf("no protocol registered for '%s'", contentType))
-	}
-
-	reg.container.Store(currentRegistry{cur.protocols, d})
+	reg.mut.Unlock()
 }
 
 // Register sets a Protocol implementation as the handler for its content type.

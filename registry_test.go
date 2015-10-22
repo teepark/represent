@@ -13,20 +13,11 @@ func TestRegistryValue(t *testing.T) {
 	pi := &protImpl{}
 	Register(pi)
 
-	current := globalReg.container.Load()
-	if current == nil {
-		t.Fatal("not registered")
-	}
-	reg, ok := current.(currentRegistry)
-	if !ok {
-		t.Fatal("wrong type in registry")
+	if len(globalReg.protocols) != 1 {
+		t.Fatal("wrong # of protocols registered:", len(globalReg.protocols))
 	}
 
-	if len(reg.protocols) != 1 {
-		t.Fatal("wrong # of protocols registered:", len(reg.protocols))
-	}
-
-	if reg.protocols[0] != pi {
+	if globalReg.protocols[0] != pi {
 		t.Fatal("wrong protocol")
 	}
 }
@@ -38,16 +29,7 @@ func TestSetDefault(t *testing.T) {
 	Register(pi)
 	SetDefault(pi.ContentType())
 
-	current := globalReg.container.Load()
-	if current == nil {
-		t.Fatal("not registered")
-	}
-	reg, ok := current.(currentRegistry)
-	if !ok {
-		t.Fatal("wrong type in registry")
-	}
-
-	if reg.defaultProt != pi {
+	if globalReg.defaultProtocol != pi {
 		t.Fatal("wrong default protocol")
 	}
 }
